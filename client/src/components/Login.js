@@ -8,7 +8,8 @@ function Login() {
         email: '',
         password: ''
     });
-
+    const [message, setMessage] = useState('');
+    
     const navigate = useNavigate();
 
     const handleInput = (event) => {
@@ -16,26 +17,28 @@ function Login() {
     };
     axios.defaults.withCredentials = true;
 
-    useEffect(() => {
-        axios.get('http://localhost:8081')
-        .then(res => {
-            if(res.data.valid) {
-            navigate('/');
-            } else {
-            navigate('/login');
-            }
-        })
-        .catch(err => console.log(err));
-    },[]);   
+    // useEffect(() => {
+    //     axios.get('http://localhost:4000/')
+    //     .then(res => {
+    //         if(res.data.valid) {
+    //             navigate('/');
+    //         } else {
+    //             navigate('/login');
+    //         }
+    //     })
+    //     .catch(err => console.log(err));
+    // },[]);   
 
     const handleSubmit = (event) => {
         event.preventDefault();
-        axios.post('http://localhost:8081/login', values)
+        axios.post('http://localhost:4000/login', values)
         .then(res => {
+            console.log("뭐냐", res.data.Status)
             if(res.data.Status === "Success") {
-                navigate('/');
+                window.location.href = '/';
             } else {
-                alert("No Record");
+                // alert("No Record");
+                setMessage(res.data.message);
             }
             console.log(res);
         })

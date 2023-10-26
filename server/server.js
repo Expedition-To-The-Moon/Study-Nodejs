@@ -6,16 +6,24 @@ const bodyParser = require('body-parser');
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
 const bcrypt = require('bcrypt');
-const salt = 10;
 
 const nodemailer = require('nodemailer');
+
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
 
 
 const db = require('./config/db');
 const sessionOption = require('./config/sessionOption');
 const { response } = require('express');
 
+const KakaoStrategy = require('passport-kakao').Strategy;
+const NaverStrategy = require('passport-naver').Strategy;
+
 const app = express();
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 
 app.use(cors({
     origin: ['http://localhost:3000'],
@@ -23,10 +31,6 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json());
-app.use(cookieParser());
-
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
 
 let mysqlStore = require('express-mysql-session')(session); 
 let sessionStore = new mysqlStore(sessionOption);
@@ -45,6 +49,60 @@ app.use(session({
     }
 }));
 
+// passport와 관련된 코드는 session를 사용하므로 session활성화 코드 밑에 들어가야함.
+passport.serializeUser((user, done) => {
+    // console.log('serializeUser', user);
+    done(null, user.email);
+});
+
+passport.deserializeUser((id, done) => {
+    // console.log('deserializeUser', id);
+    User
+});
+
+passport.use(new LocalStrategy(
+    {
+      usernameField: 'email',
+      passwordField: 'password'
+    },
+    (email, password, done) => {
+        const sql = 'SELECT * FROM user WHERE email = ?';
+        db.query(sql, [email], (err, data) => {
+            if(err) return done(err);
+            if(data.length === 0){
+                return done(null, false, {Message : '이메일이 틀렸습니다.'});
+            }
+
+            const user = data[0];
+            bcrypt.compare(password, user.password, (err, response) => {
+                if(err) return done(err);
+                if (response) {
+                    return done(null, user);
+                } else {
+                    return done(null, false, { Message: '비밀번호가 틀렸습니다.' });
+                }
+            });
+        });
+    }
+));
+
+
+app.use(cookieParser(process.env.SECRET_KEY));
+app.use(passport.initialize());
+app.use(passport.session());
+  
+
+app.post('/login',
+    passport.authenticate('local', { 
+        successRedirect: '/', 
+        failureRedirect: '/login' 
+    })
+);
+
+
+
+
+//////////////////////////////////////////////////////////
 
 app.get('/', (req, res) => {
     if(req.session.username) {
@@ -58,7 +116,7 @@ app.post('/signup', (req, res) => {
     const sql = `INSERT INTO user (username, email, password) VALUES (?)`;
     const password = req.body.password;
 
-    bcrypt.hash(password.toString(), salt, (err, hash) => {
+    bcrypt.hash(password.toString(), 10, (err, hash) => {
         if(err) {
             console.log(err);
         }
@@ -78,16 +136,9 @@ app.post('/signup', (req, res) => {
 });
 
 app.post('/login'
-// [
-//     check('email', "Email length error").isEmail().isLength({ min: 10, max: 30 })
-// ]
 , (req, res) => {
     const sql = 'SELECT * FROM user WHERE email = ?';
     db.query(sql, [req.body.email], (err, data) => {
-        // const error = validationResult(req);
-        // if(!error.isEmpty()) {
-        //     return res.json(error);
-        // } else {
             if(err) return res.json({Message: "Error inside server"});
             if(data.length > 0){
                 bcrypt.compare(req.body.password.toString(), data[0].password, (err, response) => {
@@ -104,7 +155,6 @@ app.post('/login'
             } else {
                 return res.json({Status : false});
             }
-        // }
     });
 });
 
