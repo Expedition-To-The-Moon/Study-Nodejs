@@ -8,7 +8,7 @@ function Email() {
         username: '',
         email: ''
     });
-    const [Message, setMessage] = useState('');
+    const [message, setMessage] = useState('');
 
     const navigate = useNavigate();
 
@@ -18,14 +18,14 @@ function Email() {
 
     const handleSubmit = async(event) => {
         event.preventDefault();
-        axios.post('http://localhost:8081/send', values)
+        axios.post('http://localhost:4000/send', values)
         .then(res => {
             if(res.data.ok === true) {
                 console.log("이메일이 성공적으로 전송되었습니다.");
                 navigate('/login');
             } else {
                 alert("존재하지 않는 이메일입니다.");
-                setMessage(res.data.Message);
+                setMessage(res.data.message);
             }
             console.log(res);
         })

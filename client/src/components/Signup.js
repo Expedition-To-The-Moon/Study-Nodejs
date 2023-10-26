@@ -23,7 +23,7 @@ function Signup() {
         setErrors(Validation(values));
 
         if(Object.keys(errors).length === 0) {
-            axios.post('http://localhost:8081/signup', values)
+            axios.post('http://localhost:4000/signup', values)
             .then(res => {
                 console.log(res);  
                 navigate('/login');
